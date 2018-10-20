@@ -37,6 +37,16 @@
     {
       "name": "/actions/demo/out/haptic_right",
       "type": "vibration"
+    },
+    {
+      "name": "/actions/demo/in/lefthand_anim",
+      "type": "skeleton",
+      "skeleton": "/skeleton/hand/left"
+    },
+    {
+      "name": "/actions/demo/in/righthand_anim",
+      "type": "skeleton",
+      "skeleton": "/skeleton/hand/right"
     }
   ],
     "localization" : [

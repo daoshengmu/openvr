@@ -131,6 +131,7 @@ private:
 		vr::VRInputValueHandle_t m_source = vr::k_ulInvalidInputValueHandle;
 		vr::VRActionHandle_t m_actionPose = vr::k_ulInvalidActionHandle;
 		vr::VRActionHandle_t m_actionHaptic = vr::k_ulInvalidActionHandle;
+		vr::VRActionHandle_t m_actionSkeletal = vr::k_ulInvalidActionHandle;
 		Matrix4 m_rmat4Pose;
 		CGLRenderModel *m_pRenderModel = nullptr;
 		std::string m_sRenderModelName;
@@ -546,10 +547,12 @@ bool CMainApplication::BInit()
 	vr::VRInput()->GetActionHandle( "/actions/demo/out/Haptic_Left", &m_rHand[Left].m_actionHaptic );
 	vr::VRInput()->GetInputSourceHandle( "/user/hand/left", &m_rHand[Left].m_source );
 	vr::VRInput()->GetActionHandle( "/actions/demo/in/Hand_Left", &m_rHand[Left].m_actionPose );
+	vr::VRInput()->GetActionHandle("/actions/demo/in/lefthand_anim", &m_rHand[Left].m_actionSkeletal);
 
 	vr::VRInput()->GetActionHandle( "/actions/demo/out/Haptic_Right", &m_rHand[Right].m_actionHaptic );
 	vr::VRInput()->GetInputSourceHandle( "/user/hand/right", &m_rHand[Right].m_source );
 	vr::VRInput()->GetActionHandle( "/actions/demo/in/Hand_Right", &m_rHand[Right].m_actionPose );
+	vr::VRInput()->GetActionHandle("/actions/demo/in/righthand_anim", &m_rHand[Right].m_actionSkeletal);
 
 	return true;
 }
@@ -731,6 +734,53 @@ bool CMainApplication::HandleInput()
 	vr::VRActiveActionSet_t actionSet = { 0 };
 	actionSet.ulActionSet = m_actionsetDemo;
 	vr::VRInput()->UpdateActionState( &actionSet, sizeof(actionSet), 1 );
+
+	// Fetching the skeletal data
+	vr::InputSkeletalActionData_t leftSkeletal;
+	vr::EVRInputError result = vr::VRInput()->GetSkeletalActionData(m_rHand[Left].m_actionSkeletal, &leftSkeletal,
+								sizeof(leftSkeletal), vr::k_ulInvalidInputValueHandle);
+	if (result == vr::VRInputError_None && leftSkeletal.bActive) {
+		dprintf("left hand bone count: %d\n", leftSkeletal.boneCount);
+
+		vr::VRBoneTransform_t* boneTransform = new vr::VRBoneTransform_t[leftSkeletal.boneCount];
+		result= vr::VRInput()->GetSkeletalBoneData(m_rHand[Left].m_actionSkeletal,
+					vr::EVRSkeletalTransformSpace::VRSkeletalTransformSpace_Model,
+					vr::EVRSkeletalMotionRange::VRSkeletalMotionRange_WithController,
+					boneTransform, leftSkeletal.boneCount, vr::k_ulInvalidInputValueHandle);
+		SDL_assert(result == vr::VRInputError_None);
+
+		vr::InputPoseActionData_t poseData;
+		result = vr::VRInput()->GetPoseActionData(leftSkeletal.activeOrigin, vr::ETrackingUniverseOrigin::TrackingUniverseStanding,
+												  0.0f, &poseData, sizeof(poseData), vr::k_ulInvalidInputValueHandle);
+		if (result == vr::VRInputError_None) {
+			dprintf("Getting left hand pose successfully");
+		}
+
+		delete[] boneTransform;
+	}
+	
+	vr::InputSkeletalActionData_t rightSkeletal;
+	result = vr::VRInput()->GetSkeletalActionData(m_rHand[Right].m_actionSkeletal, &rightSkeletal, sizeof(rightSkeletal), vr::k_ulInvalidInputValueHandle);
+	if (result == vr::VRInputError_None && rightSkeletal.bActive) {
+		dprintf("left hand bone count: %d\n", rightSkeletal.boneCount);
+
+		vr::VRBoneTransform_t* boneTransform = new vr::VRBoneTransform_t[rightSkeletal.boneCount];
+		result = vr::VRInput()->GetSkeletalBoneData(m_rHand[Right].m_actionSkeletal,
+					vr::EVRSkeletalTransformSpace::VRSkeletalTransformSpace_Model,
+					vr::EVRSkeletalMotionRange::VRSkeletalMotionRange_WithController,
+					boneTransform, rightSkeletal.boneCount, vr::k_ulInvalidInputValueHandle);
+		SDL_assert(result == vr::VRInputError_None);
+
+		vr::InputPoseActionData_t poseData;
+		result = vr::VRInput()->GetPoseActionData(rightSkeletal.activeOrigin, vr::ETrackingUniverseOrigin::TrackingUniverseStanding,
+												  0.0f, &poseData, sizeof(poseData), vr::k_ulInvalidInputValueHandle);
+		if (result == vr::VRInputError_None) {
+			dprintf("Getting right hand pose successfully");
+		}
+
+		delete[] boneTransform;
+	}
+	// End of fetching the skeletal data
 
 	m_bShowCubes = !GetDigitalActionState( m_actionHideCubes );
 
